@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<header id="header">
+    <a href="index.html" class="logo">Massively</a>
+    <nav>
+        <ul class="links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="elements.html">Elements</a></li>
+            <li><a href="signup.html">Sign Up</a></li>
+        </ul>
+    </nav>
+</header>
+
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation</title>
+    <style>
+        /* Add your styles here */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .browse-by {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .browse-by select, .browse-by button {
+            margin: 10px;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+        }
+        .browse-by button:hover {
+            background-color: #444;
+        }
+        .movies-row {
+            display: flex;
+            overflow-x: scroll;
+            gap: 10px;
+            padding: 10px;
+        }
+        .movie {
+            flex-shrink: 0;
+            width: 150px;
+            text-align: center;
+        }
+        .movie img {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .movie p {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Popular Movies Section -->
+    <h2>Popular Movies</h2>
+    <div class="movies-row" id="movies-row"></div>
+
+    <!-- Browse By Section -->
+    <div class="browse-by">
+        <label for="genre">Genre:</label>
+        <select id="genre">
+            <option value="">Select Genre</option>
+        </select>
+        <label for="rating">Rating:</label>
+        <select id="rating">
+            <option value="">Select Rating</option>
+            <option value="desc">Highest First</option>
+            <option value="asc">Lowest First</option>
+        </select>
+        <label for="year">Year:</label>
+        <select id="year">
+            <option value="">Select Year</option>
+            <option value="2020">2020s</option>
+            <option value="2010">2010s</option>
+            <option value="2000">2000s</option>
+            <option value="1990">1990s</option>
+            <option value="1980">1980s</option>
+        </select>
+        <label for="service">Service:</label>
+        <select id="service">
+            <option value="">Select Service</option>
+            <option value="netflix">Netflix</option>
+            <option value="amazon">Amazon Prime</option>
+            <option value="hulu">Hulu</option>
+            <option value="disneyplus">Disney+</option>
+        </select>
+        <button id="browse-by-btn">Browse By</button>
+    </div>
+
+    <!-- Movie Search Section -->
+    <h2>Search for Movies</h2>
+    <div class="search">
+        <input type="text" id="search-input" placeholder="Search for a movie">
+        <button id="search-btn">Search</button>
+    </div>
+
+    <!-- Movie Grid -->
+    <div id="movie-grid" class="movie-grid"></div>
+</div>
+
+<!-- Add your script here -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.3/fetch.min.js"></script>
+<script>
+    const apiKey = '605077897a66c46a4084aa1fb9f92768';
+    
+    // Fetch popular movies on page load
+    fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=1`)
+        .then(response => response.json())
+        .then(data => {
+            const movies = data.results;
+            const movieRow = document.getElementById('movies-row');
+
+            movies.forEach(movie => {
+                const movieElement = document.createElement('div');
+                movieElement.classList.add('movie');
+                movieElement.innerHTML = `
+                    <img src="https://image.tmdb.org/t/p/w200${movie.poster_path}" alt="${movie.title}" class="movie-poster" data-id="${movie.id}">
+                    <p>${movie.title}</p>
+                `;
+                movieRow.appendChild(movieElement);
+            });
+
+            // Event listener for clicking on a poster
+            const posters = document.querySelectorAll('.movie-poster');
+            posters.forEach(poster => {
+                poster.addEventListener('click', function() {
+                    const movieId = poster.getAttribute('data-id');
+                    fetchMovieDetails(movieId);
+                });
+            });
+        })
+        .catch(error => console.error('Error fetching popular movies:', error));
+
+    // Fetch movie details by ID
+    function fetchMovieDetails(movieId) {
+        fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`)
+            .then(response => response.json())
+            .then(movie => {
+                alert(`Title: ${movie.title}\nOverview: ${movie.overview}\nRelease Date: ${movie.release_date}`);
+            })
+            .catch(error => console.error('Error fetching movie details:', error));
+    }
+
+    // Event listener for Browse By button
+    document.getElementById('browse-by-btn').addEventListener('click', function() {
+        const genre = document.getElementById('genre').value;
+        const rating = document.getElementById('rating').value;
+        const year = document.getElementById('year').value;
+        const service = document.getElementById('service').value;
+
+        let url = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&language=en-US&sort_by=popularity.desc`;
+
+        if (genre) url += `&with_genres=${genre}`;
+        if (rating) url += `&vote_average.gte=${rating === "desc" ? 8 : 0}`;  // Example rating logic
+        if (year) url += `&primary_release_year=${year}`;
+        if (service) url += `&with_watch_providers=${service}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const movies = data.results;
+                const movieGrid = document.getElementById('movie-grid');
+                movieGrid.innerHTML = '';
+
+                movies.forEach(movie => {
+                    const movieElement = document.createElement('div');
+                    movieElement.classList.add('movie');
+                    movieElement.innerHTML = `
+                        <img src="https://image.tmdb.org/t/p/w200${movie.poster_path}" alt="${movie.title}" class="movie-poster" data-id="${movie.id}">
+                        <p>${movie.title}</p>
+                    `;
+                    movieGrid.appendChild(movieElement);
+                });
+            })
+            .catch(error => console.error('Error fetching movies by filter:', error));
+    });
+
+    // Event listener for Search button
+    document.getElementById('search-btn').addEventListener('click', function() {
+        const query = document.getElementById('search-input').value;
+        if (!query) return;
+
+        fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}&language=en-US&page=1`)
+            .then(response => response.json())
+            .then(data => {
+                const movies = data.results;
+                const movieGrid = document.getElementById('movie-grid');
+                movieGrid.innerHTML = '';
+
+                movies.forEach(movie => {
+                    const movieElement = document.createElement('div');
+                    movieElement.classList.add('movie');
+                    movieElement.innerHTML = `
+                        <img src="https://image.tmdb.org/t/p/w200${movie.poster_path}" alt="${movie.title}" class="movie-poster" data-id="${movie.id}">
+                        <p>${movie.title}</p>
+                    `;
+                    movieGrid.appendChild(movieElement);
+                });
+            })
+            .catch(error => console.error('Error searching for movie:', error));
+    });
+</script>
+
+</body>
+</html>
